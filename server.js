@@ -38,7 +38,7 @@ const PROGRAMS = {
 const STAGES = {
   open: {
     name: "开学 · 新生",
-    prompt: "用户身份是 2026 级新生，刚参加 FDU 线下开学典礼。重点写重新成为学生、见证毕业生拨穗、收到录取通知书、认识同学、开启新旅程。",
+    prompt: "用户身份是 2026 级新生，刚参加 FDU 开学典礼。重点写重新成为学生、见证毕业生拨穗、收到录取通知书、认识同学、开启新旅程。",
     titleSuffix: "开学典礼打卡",
     tag: "#开学典礼"
   },
@@ -69,16 +69,16 @@ const FIXED_TAGS = [
 
 const fallbackTitles = {
   open: {
-    gtp: "FDU心理学硕士｜上海开学典礼打卡",
-    cp: "FDU心理咨询硕士｜开学典礼打卡",
-    iop: "FDU管理心理学硕士｜开学典礼打卡",
-    mha: "FDU医疗健康管理硕士｜开学打卡"
+    gtp: "FDU2026心理学硕士开学打卡",
+    cp: "FDU2026心理咨询硕士开学打卡",
+    iop: "FDU2026管理心理学硕士开学打卡",
+    mha: "FDU2026医疗健康管理硕士开学"
   },
   grad: {
-    gtp: "FDU心理学硕士毕业｜上海典礼打卡",
-    cp: "FDU心理咨询硕士毕业｜典礼打卡",
-    iop: "FDU管理心理学硕士毕业打卡",
-    mha: "FDU医疗健康管理硕士毕业打卡"
+    gtp: "FDU2026心理学硕士毕业打卡",
+    cp: "FDU2026心理咨询硕士毕业打卡",
+    iop: "FDU2026管理心理学硕士毕业",
+    mha: "FDU2026医疗健康管理硕士毕业"
   }
 };
 
@@ -125,7 +125,78 @@ function validateCopyRequest(input) {
 }
 
 function countChineseText(text) {
-  return [...String(text || "").replace(/\s/g, "")].length;
+  return [...String(text || "").replace(/(^|\n)\s*-\s*(\n|$)/g, "").replace(/\s/g, "")].length;
+}
+
+function cleanTitle(title, program, stage) {
+  const fallback = fallbackTitles[stage][program];
+  const cleaned = String(title || "")
+    .replace(/[#｜|]/g, "")
+    .replace(/上海线下|上海/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+  const len = [...cleaned].length;
+  return len >= 16 && len <= 20 ? cleaned : fallback;
+}
+
+function cleanStudentCopy(text) {
+  return String(text || "")
+    .replace(/上海线下的/g, "")
+    .replace(/上海线下/g, "")
+    .replace(/上海的线下/g, "")
+    .replace(/上海/g, "")
+    .replace(/具体(申请|项目|课程|学校)?信息[^。！？!?\\n]*(以|请以)[^。！？!?\\n]*(学校|官方)[^。！？!?\\n]*[。！？!?]?/g, "")
+    .replace(/(大家|同学们)?(还是)?(以|请以)FDU学校官方发布的为准[^。！？!?\\n]*[。！？!?]?/g, "")
+    .replace(/(具体)?(申请|项目)?信息(还是)?以学校官方为准[^。！？!?\\n]*[。！？!?]?/g, "")
+    .replace(/以学校官方为准[^。！？!?\\n]*[。！？!?]?/g, "")
+    .replace(/。[ \t]+/g, "。")
+    .replace(/\s+([，。！？；：])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function formatBody(text) {
+  const cleaned = cleanStudentCopy(text);
+  let paragraphs = cleaned
+    .split(/\n\s*-\s*\n|\n{2,}/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (paragraphs.length <= 1) {
+    const sentences = cleaned
+      .split(/(?<=[。！？!?])/)
+      .map(part => part.trim())
+      .filter(Boolean);
+    paragraphs = [];
+    let current = "";
+    for (const sentence of sentences) {
+      if (current && [...current + sentence].length > 115) {
+        paragraphs.push(current);
+        current = sentence;
+      } else {
+        current += sentence;
+      }
+    }
+    if (current) paragraphs.push(current);
+  }
+
+  return paragraphs.slice(0, 5).join("\n-\n");
+}
+
+function normalizeTag(tag) {
+  const text = String(tag || "").replace(/^#+/, "").replace(/\s+/g, "").trim();
+  return text ? `#${text}` : "";
+}
+
+function normalizeTags(tags, program, stage) {
+  const programInfo = PROGRAMS[program];
+  const stageInfo = STAGES[stage];
+  return [...new Set([
+    ...FIXED_TAGS,
+    ...tags,
+    ...programInfo.tags.filter(tag => !tag.includes("典礼")),
+    stageInfo.tag
+  ].map(normalizeTag).filter(Boolean))].slice(0, 10);
 }
 
 function fallbackCopy(program, stage, mood = "ceremony") {
@@ -134,8 +205,8 @@ function fallbackCopy(program, stage, mood = "ceremony") {
   const isGrad = stage === "grad";
   const body = [
     isGrad
-      ? "六月底的上海，我参加了 FDU 的毕业典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，轮到自己上台的那一刻，才真正意识到这一程读完了。"
-      : "六月底的上海，我参加了 FDU 的线下典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，坐在台下看着学长学姐走上台，仪式感一下就变得很具体。",
+      ? "六月底，我参加了 FDU 的毕业典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，轮到自己上台的那一刻，才真正意识到这一程读完了。"
+      : "六月底，我参加了 FDU 的典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，坐在台下看着学长学姐走上台，仪式感一下就变得很具体。",
     isGrad
       ? `这一路我读的是${programInfo.name}。${programInfo.angle} 回头看，很多原来零散的经验和想法，确实被这一程慢慢整理成了更清楚的框架。`
       : `这次我读的是${programInfo.name}。${programInfo.angle} 今天站在现场，会更清楚地感觉到，重新学习不是一句口号，而是要认真给自己留出时间和秩序。`,
@@ -143,15 +214,15 @@ function fallbackCopy(program, stage, mood = "ceremony") {
       ? "茶歇时和同学聊起这一路，大家都是一边工作一边把课读完的人，从线上同窗到线下合影，那种一起走到毕业的感觉很难得。"
       : "现场也有给新生的录取通知书授予、班委授予和合影环节。茶歇时和同学聊了几句，大家背景不同，但都在一边工作一边读书，那种同频感挺难得。",
     mood === "lowkey"
-      ? `不想写得太夸张，就安静记录一下：${isGrad ? "一程收尾，认真毕业" : "新的一程开始了"}。具体项目信息以学校官方为准。`
+      ? `不想写得太夸张，就安静记录一下：${isGrad ? "一程收尾，认真毕业" : "新的一程开始了"}。这一天对我来说挺重要，先好好存下来。`
       : isGrad
         ? "今天算是给自己一个正式的交代。把这条毕业记录存下来，也提醒之后的自己，既然已经走过这一程，就带着这份底气继续往前。"
         : "今天算是给自己一个正式的开始。把这条开学记录存下来，也提醒之后的自己，既然已经走到这里，就慢慢、稳稳地把这一程读完。"
-  ].join("\n\n");
+  ].join("\n-\n");
   return {
-    title: fallbackTitles[stage][program],
-    body,
-    tags: [...FIXED_TAGS, ...programInfo.tags.filter(tag => !tag.includes("典礼")), stageInfo.tag],
+    title: cleanTitle(fallbackTitles[stage][program], program, stage),
+    body: formatBody(body),
+    tags: normalizeTags([], program, stage),
     count: countChineseText(body),
     source: "fallback"
   };
@@ -160,10 +231,10 @@ function fallbackCopy(program, stage, mood = "ceremony") {
 function normalizeModelCopy(data, program, stage) {
   const programInfo = PROGRAMS[program];
   const stageInfo = STAGES[stage];
-  const title = String(data?.title || fallbackTitles[stage][program]).trim();
-  const body = String(data?.body || "").trim();
+  const title = cleanTitle(data?.title, program, stage);
+  const body = formatBody(data?.body);
   const tags = Array.isArray(data?.tags) ? data.tags.map(t => String(t).trim()).filter(Boolean) : [];
-  const mergedTags = [...new Set([...FIXED_TAGS, ...tags, ...programInfo.tags.filter(tag => !tag.includes("典礼")), stageInfo.tag])].slice(0, 10);
+  const mergedTags = normalizeTags(tags, program, stage);
 
   if (!body) {
     throw new Error("Model returned empty body");
@@ -186,7 +257,7 @@ async function generateWithArk(program, stage, mood) {
   const programInfo = PROGRAMS[program];
   const stageInfo = STAGES[stage];
   const prompt = [
-    "请为小红书生成一篇 FDU（菲尔莱狄更斯大学）线下典礼学员打卡文案。",
+    "请为小红书生成一篇 FDU（菲尔莱狄更斯大学）典礼学员打卡文案。",
     "",
     `专业方向：${programInfo.name}`,
     `专业表达重点：${programInfo.angle}`,
@@ -195,12 +266,14 @@ async function generateWithArk(program, stage, mood) {
     `打卡风格：${MOODS[mood]}`,
     "",
     "必须遵守：",
-    "1. 第一人称学员视角，像本人参加上海线下典礼后的真实记录，不写招生广告。",
-    "2. 正文 300-500 字，中文自然口语，真诚、有现场感。",
-    "3. 可提及签到入场、院长致辞、拨穗正冠、学位授予、学术成就奖、薪火相传、毕业生合照、茶歇交流、录取通知书授予、班委授予、拍照合影、校友晚宴等现场环节。",
-    "4. 不承诺包毕业、保录取、快速拿证、执业、落户、涨薪、转行结果。",
-    "5. 结尾可提醒具体项目信息以学校官方为准。",
-    "6. 返回 JSON，字段为 title、body、tags。tags 只返回 10 个话题。"
+    "1. 第一人称学员视角，像本人参加典礼后的真实记录，不写招生广告。",
+    "2. 标题必须 16-20 个字符，不能超过 20 个字符，不要使用竖线符号，不写“上海线下”。",
+    "3. 正文 300-500 字，中文自然口语，真诚、有现场感；每个文段之间必须用单独一行 - 分隔。",
+    "4. 禁止出现“上海线下”“具体申请信息”“具体项目信息”“以学校官方为准”“官方发布为准”等不像学生口吻的表达。",
+    "5. 可提及签到入场、院长致辞、拨穗正冠、学位授予、学术成就奖、薪火相传、毕业生合照、茶歇交流、录取通知书授予、班委授予、拍照合影、校友晚宴等现场环节。",
+    "6. 不承诺包毕业、保录取、快速拿证、执业、落户、涨薪、转行结果。",
+    "7. tags 只返回 10 个话题，每个话题都必须以 # 开头。",
+    "8. 返回 JSON，字段为 title、body、tags。"
   ].join("\n");
 
   const response = await fetch(`${ARK_BASE_URL.replace(/\/$/, "")}/chat/completions`, {
