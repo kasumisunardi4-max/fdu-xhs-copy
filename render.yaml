@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fdu-xhs-checkin-copy
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: ARK_BASE_URL
+        value: https://ark.cn-beijing.volces.com/api/v3
+      - key: ARK_MODEL
+        value: Doubao-Seed-2.1-turbo
+      - key: FALLBACK_ENABLED
+        value: "true"
+      - key: COPY_COUNT_BASE
+        value: "0"
+      - key: ARK_API_KEY
+        sync: false
