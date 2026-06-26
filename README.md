@@ -8,40 +8,47 @@
 
 - `index.html` —— 完整页面，单文件、零依赖、图片已内联，可直接用浏览器 / 微信内打开，也可直接丢到任意静态托管（Render / Netlify / Vercel / GitHub Pages）。
 
-## 当前为纯前端 mock
+## 当前部署结构
 
-- 文案在浏览器本地生成，逻辑全部封装在 `generateCopy(program, mood)`，返回 `{ title, body, tags, count }`。
-- 复制次数（发布代理指标）用 `localStorage` 本地计数，封装在 `COUNTER`。
+- 页面由 `index.html` 提供，文案生成请求后端 `POST /api/generate-copy`。
+- 后端在 `server.js`，通过火山方舟 / 豆包 OpenAI-compatible 接口生成文案。
+- 如果豆包接口未接通，会返回备用文案，并带 `source: "fallback"`；接通时返回 `source: "ark"`。
 - **前端不含任何 API Key。**
 
 ## 接入真实后端
 
 ### 1）文案生成
-把 `generateCopy` 的函数体替换为对自有后端的调用（文件内已留 `callBackend` 注释模板）：
-
 ```
 POST /api/generate-copy
-body: { "program": "gtp|cp|iop|mha", "mood": "ceremony|newstage|classmates|lowkey" }
-resp: { "title": "...", "body": "...", "tags": ["#...", ...], "count": 363 }
+body: { "program": "gtp|cp|iop|mha", "stage": "open|grad" }
+resp: { "title": "...", "body": "...", "tags": ["#...", ...], "count": 363, "source": "ark" }
 ```
 
-模型 Key 只放在后端环境变量里，前端只请求自己的接口。本项目默认接入火山方舟 / 豆包 OpenAI-compatible 接口。
+模型 Key 只放在后端环境变量里，前端只请求自己的接口。
 
-需要配置的环境变量：
+Render 环境变量：
 
 ```
 ARK_API_KEY=你的火山方舟 API Key
-ARK_MODEL=Doubao-Seed-2.1-turbo
+ARK_MODEL=火山方舟控制台里的 Endpoint ID
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+FALLBACK_ENABLED=true
+COPY_COUNT_BASE=0
 ```
 
-### 2）复制 / 发布计数（全局聚合）
-把 `COUNTER.getCopyCount / trackCopy` 替换为：
+注意：`ARK_MODEL` 很多情况下不是模型展示名，而是方舟控制台创建推理接入点后的 Endpoint ID，常见形态类似 `ep-...`。
 
+### 2）复制 / 发布计数（全局聚合）
 ```
 GET  /api/copy-count   -> { "count": 1234 }      # 页面加载时展示
 POST /api/track-copy   -> { "count": 1235 }      # 复制成功后 +1 并回传
 ```
+
+## 计数清零（测试用）
+
+- **加参数（推荐，微信内可用）**：访问 `你的网址?reset=1`，自动清零并提示。
+- **控制台**：`localStorage.removeItem('fdu_copy_count')` 后刷新。
+- 计数按设备/浏览器本地存储；接入 `/api/track-copy` 后改为后端全局计数。
 
 ## 文案风控（已内置）
 

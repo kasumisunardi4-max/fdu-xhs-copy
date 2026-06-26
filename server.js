@@ -35,6 +35,21 @@ const PROGRAMS = {
   }
 };
 
+const STAGES = {
+  open: {
+    name: "开学 · 新生",
+    prompt: "用户身份是 2026 级新生，刚参加 FDU 线下开学典礼。重点写重新成为学生、见证毕业生拨穗、收到录取通知书、认识同学、开启新旅程。",
+    titleSuffix: "开学典礼打卡",
+    tag: "#开学典礼"
+  },
+  grad: {
+    name: "毕业 · 毕业生",
+    prompt: "用户身份是 2026 届毕业生，刚参加 FDU 线下毕业典礼。重点写读完一程、拨穗正冠、学位授予、同学重逢、从学生成为校友。",
+    titleSuffix: "毕业典礼打卡",
+    tag: "#毕业典礼"
+  }
+};
+
 const MOODS = {
   ceremony: "仪式感强，像学员本人参加典礼后的正式记录。",
   newstage: "重新出发，强调工作多年后再次成为学生的新阶段。",
@@ -53,10 +68,18 @@ const FIXED_TAGS = [
 ];
 
 const fallbackTitles = {
-  gtp: "FDU心理学硕士｜上海开学典礼打卡",
-  cp: "FDU心理咨询硕士｜开学典礼打卡",
-  iop: "FDU管理心理学硕士｜开学典礼打卡",
-  mha: "FDU医疗健康管理硕士｜开学打卡"
+  open: {
+    gtp: "FDU心理学硕士｜上海开学典礼打卡",
+    cp: "FDU心理咨询硕士｜开学典礼打卡",
+    iop: "FDU管理心理学硕士｜开学典礼打卡",
+    mha: "FDU医疗健康管理硕士｜开学打卡"
+  },
+  grad: {
+    gtp: "FDU心理学硕士毕业｜上海典礼打卡",
+    cp: "FDU心理咨询硕士毕业｜典礼打卡",
+    iop: "FDU管理心理学硕士毕业打卡",
+    mha: "FDU医疗健康管理硕士毕业打卡"
+  }
 };
 
 function sendJson(res, status, data) {
@@ -85,48 +108,62 @@ function readBody(req) {
 
 function validateCopyRequest(input) {
   const program = input?.program;
-  const mood = input?.mood;
-  if (!PROGRAMS[program] || !MOODS[mood]) {
+  const stage = input?.stage || "open";
+  const mood = input?.mood || "ceremony";
+  if (!PROGRAMS[program] || !STAGES[stage] || !MOODS[mood]) {
     const allowed = {
       program: Object.keys(PROGRAMS),
+      stage: Object.keys(STAGES),
       mood: Object.keys(MOODS)
     };
-    const err = new Error("Invalid program or mood");
+    const err = new Error("Invalid program, stage, or mood");
     err.status = 400;
     err.details = allowed;
     throw err;
   }
-  return { program, mood };
+  return { program, stage, mood };
 }
 
 function countChineseText(text) {
   return [...String(text || "").replace(/\s/g, "")].length;
 }
 
-function fallbackCopy(program, mood) {
+function fallbackCopy(program, stage, mood = "ceremony") {
   const programInfo = PROGRAMS[program];
+  const stageInfo = STAGES[stage];
+  const isGrad = stage === "grad";
   const body = [
-    `六月底的上海，我参加了 FDU 的线下典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，坐在台下看着学长学姐走上台，仪式感一下就变得很具体。`,
-    `这次我读的是${programInfo.name}。${programInfo.angle} 今天站在现场，会更清楚地感觉到，重新学习不是一句口号，而是要认真给自己留出时间和秩序。`,
-    `现场也有给新生的录取通知书授予、班委授予和合影环节。茶歇时和同学聊了几句，大家背景不同，但都在一边工作一边读书，那种同频感挺难得。`,
+    isGrad
+      ? "六月底的上海，我参加了 FDU 的毕业典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，轮到自己上台的那一刻，才真正意识到这一程读完了。"
+      : "六月底的上海，我参加了 FDU 的线下典礼。签到入场、院长致辞、拨穗正冠和学位授予一个个推进，坐在台下看着学长学姐走上台，仪式感一下就变得很具体。",
+    isGrad
+      ? `这一路我读的是${programInfo.name}。${programInfo.angle} 回头看，很多原来零散的经验和想法，确实被这一程慢慢整理成了更清楚的框架。`
+      : `这次我读的是${programInfo.name}。${programInfo.angle} 今天站在现场，会更清楚地感觉到，重新学习不是一句口号，而是要认真给自己留出时间和秩序。`,
+    isGrad
+      ? "茶歇时和同学聊起这一路，大家都是一边工作一边把课读完的人，从线上同窗到线下合影，那种一起走到毕业的感觉很难得。"
+      : "现场也有给新生的录取通知书授予、班委授予和合影环节。茶歇时和同学聊了几句，大家背景不同，但都在一边工作一边读书，那种同频感挺难得。",
     mood === "lowkey"
-      ? "不想写得太夸张，就安静记录一下：新的一程开始了。具体项目信息以学校官方为准，接下来就一步一步把课、作业和讨论认真完成。"
-      : "今天算是给自己一个正式的开始。把这条开学记录存下来，也提醒之后的自己，既然已经走到这里，就慢慢、稳稳地把这一程读完。"
+      ? `不想写得太夸张，就安静记录一下：${isGrad ? "一程收尾，认真毕业" : "新的一程开始了"}。具体项目信息以学校官方为准。`
+      : isGrad
+        ? "今天算是给自己一个正式的交代。把这条毕业记录存下来，也提醒之后的自己，既然已经走过这一程，就带着这份底气继续往前。"
+        : "今天算是给自己一个正式的开始。把这条开学记录存下来，也提醒之后的自己，既然已经走到这里，就慢慢、稳稳地把这一程读完。"
   ].join("\n\n");
   return {
-    title: fallbackTitles[program],
+    title: fallbackTitles[stage][program],
     body,
-    tags: [...FIXED_TAGS, ...programInfo.tags],
-    count: countChineseText(body)
+    tags: [...FIXED_TAGS, ...programInfo.tags.filter(tag => !tag.includes("典礼")), stageInfo.tag],
+    count: countChineseText(body),
+    source: "fallback"
   };
 }
 
-function normalizeModelCopy(data, program) {
+function normalizeModelCopy(data, program, stage) {
   const programInfo = PROGRAMS[program];
-  const title = String(data?.title || fallbackTitles[program]).trim();
+  const stageInfo = STAGES[stage];
+  const title = String(data?.title || fallbackTitles[stage][program]).trim();
   const body = String(data?.body || "").trim();
   const tags = Array.isArray(data?.tags) ? data.tags.map(t => String(t).trim()).filter(Boolean) : [];
-  const mergedTags = [...new Set([...FIXED_TAGS, ...tags, ...programInfo.tags])].slice(0, 10);
+  const mergedTags = [...new Set([...FIXED_TAGS, ...tags, ...programInfo.tags.filter(tag => !tag.includes("典礼")), stageInfo.tag])].slice(0, 10);
 
   if (!body) {
     throw new Error("Model returned empty body");
@@ -136,21 +173,25 @@ function normalizeModelCopy(data, program) {
     title,
     body,
     tags: mergedTags,
-    count: countChineseText(body)
+    count: countChineseText(body),
+    source: "ark"
   };
 }
 
-async function generateWithArk(program, mood) {
+async function generateWithArk(program, stage, mood) {
   if (!ARK_API_KEY) {
     throw new Error("ARK_API_KEY is not configured");
   }
 
   const programInfo = PROGRAMS[program];
+  const stageInfo = STAGES[stage];
   const prompt = [
     "请为小红书生成一篇 FDU（菲尔莱狄更斯大学）线下典礼学员打卡文案。",
     "",
     `专业方向：${programInfo.name}`,
     `专业表达重点：${programInfo.angle}`,
+    `典礼身份：${stageInfo.name}`,
+    `身份写作重点：${stageInfo.prompt}`,
     `打卡风格：${MOODS[mood]}`,
     "",
     "必须遵守：",
@@ -196,20 +237,21 @@ async function generateWithArk(program, mood) {
   if (!text) {
     throw new Error("Ark returned empty content");
   }
-  return normalizeModelCopy(JSON.parse(text), program);
+  const cleaned = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+  return normalizeModelCopy(JSON.parse(cleaned), program, stage);
 }
 
 async function handleGenerateCopy(req, res) {
   try {
     const raw = await readBody(req);
-    const { program, mood } = validateCopyRequest(JSON.parse(raw || "{}"));
+    const { program, stage, mood } = validateCopyRequest(JSON.parse(raw || "{}"));
     try {
-      const copy = await generateWithArk(program, mood);
+      const copy = await generateWithArk(program, stage, mood);
       sendJson(res, 200, copy);
     } catch (error) {
       if (!FALLBACK_ENABLED) throw error;
       console.warn("Using fallback copy:", error.message);
-      sendJson(res, 200, fallbackCopy(program, mood));
+      sendJson(res, 200, fallbackCopy(program, stage, mood));
     }
   } catch (error) {
     sendJson(res, error.status || 500, {
