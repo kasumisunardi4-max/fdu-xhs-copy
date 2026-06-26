@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
 <meta name="format-detection" content="telephone=no" />
-<title>FDU · 线下典礼 · 小红书打卡文案</title>
+<title>FDU · 线下典礼 · 小红书文案</title>
 <style>
   :root{
     --navy:#16244A; --navy-700:#1E2F58; --navy-900:#0F1A36;
@@ -150,7 +150,7 @@
       <b>Fairleigh Dickinson</b>
       <span>UNIVERSITY · 美国菲尔莱狄更斯大学</span>
     </div>
-    <div class="seg"><em>线下典礼</em>小红书打卡</div>
+    <div class="seg"><em>线下典礼</em>小红书记录</div>
   </header>
 
   <!-- HERO -->
@@ -160,7 +160,7 @@
     <div class="inner">
       <div class="eyebrow">FDU · SHANGHAI · 2026/06/27</div>
       <h1>记录你的<br><span class="hl">FDU 典礼时刻</span></h1>
-      <div class="sub">线下典礼 · 小红书打卡文案，一键生成、一键复制</div>
+      <div class="sub">线下典礼 · 小红书文案，一键生成、一键复制</div>
       <div class="meta">
         <span class="chip">2026级开学典礼</span>
         <span class="chip">2026届毕业典礼</span>
@@ -200,11 +200,11 @@
         复制文案
       </button>
     </div>
-    <div class="hint" id="hint"><span class="dot"></span><span id="hintTxt">第 1、2 步选好后，点「一键生成」（每次会随机一种打卡风格，可重复点换一条）。</span></div>
+    <div class="hint" id="hint"><span class="dot"></span><span id="hintTxt">第 1、2 步选好后，点「一键生成」（每次会随机一种分享风格，可重复点换一条）。</span></div>
     <div class="stat" id="stat">
       <span class="pill" title="长按约1.5秒可清零（测试用）">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        已累计复制 <b id="statN">0</b> 次打卡文案
+        已累计复制 <b id="statN">0</b> 次文案
       </span>
     </div>
 
@@ -225,7 +225,7 @@
 
   <footer class="foot">
     <div class="div"></div>
-    本工具用于<b>个人打卡记录</b>的文案灵感，非招生宣传材料。<br/>
+    本工具用于<b>个人典礼记录</b>的文案灵感，非招生宣传材料。<br/>
     生成内容为个人感受表达，可按自己的真实经历再微调。
   </footer>
 </div>
@@ -237,7 +237,7 @@
 
 <script>
 /* =========================================================================
-   FDU 线下典礼 · 小红书打卡文案生成器
+   FDU 线下典礼 · 小红书文案生成器
    学员操作：① 选专业 ② 选开学/毕业 ③ 一键生成（风格随机）④ 复制
    前端请求 /api/generate-copy，由后端代理豆包 / 火山方舟 API；复制计数请求 /api/track-copy。
    前端不含任何 API Key。
@@ -308,7 +308,7 @@ const OPENING = {
   PEOPLE:[
     "茶歇时和几个同学聊了聊，背景五花八门，但都是一边工作一边读书的人，聊起来格外有共鸣。",
     "同学里有做教育的、做管理的、也有医护背景的，年龄相仿、状态相似，那种「原来不是一个人在折腾」的感觉真好。",
-    "现场认识了几位同班同学，互相加了微信，说好之后线上课一起打卡、互相催作业、考前一起冲，哈哈。",
+    "现场认识了几位同班同学，互相加了微信，说好之后线上课一起上、互相催作业、考前一起冲，哈哈。",
     "晚上还有校友晚宴，趁着没散场又多聊了几句。能在这个阶段遇到一群同频的人，是这趟上海行最大的收获。"
   ],
   EXTRA:{
@@ -336,10 +336,10 @@ const OPENING = {
     ]
   },
   TITLES:{
-    gtp:["FDU2026心理学硕士开学打卡","心理学硕士开学典礼打卡","重新做学生的FDU开学记"],
-    cp:["FDU2026心理咨询硕士开学打卡","心理咨询硕士开学典礼打卡","重新出发的FDU开学记录"],
-    iop:["FDU2026管理心理学硕士开学","管理者回炉读书开学打卡","管理心理学开学典礼记录"],
-    mha:["FDU2026医疗健康管理硕士开学","医疗人回炉开学典礼打卡","MHA开学典礼现场记录"]
+    gtp:["我的FDU新生第一天真的有点热闹","工作几年后我又回FDU认真学心理","在FDU重新做学生这天真的很奇妙"],
+    cp:["今天开始在FDU认真学咨询这件事","我的FDU新生第一天真的有点心动","终于要在FDU系统学咨询这件小事"],
+    iop:["做管理的人又回FDU继续认真读书","我的FDU新生第一天真的挺上头啊","今天在FDU补管理心理学这块拼图"],
+    mha:["医疗人又回FDU认真读书这件小事","我的FDU新生第一天真的有点燃啊","在FDU补上医疗管理这一课真的值"]
   },
   PRO_TAGS:{
     gtp:["#心理学硕士","#心理学","#开学典礼"],
@@ -439,10 +439,10 @@ const GRAD = {
     ]
   },
   TITLES:{
-    gtp:["FDU2026心理学硕士毕业打卡","心理学硕士毕业典礼记录","读完这一程的FDU毕业记"],
-    cp:["FDU2026心理咨询硕士毕业","心理咨询硕士毕业典礼打卡","一程收尾的FDU毕业记录"],
-    iop:["FDU2026管理心理学硕士毕业","管理者毕业典礼打卡记录","管理心理学毕业典礼记录"],
-    mha:["FDU2026医疗健康管理硕士毕业","医疗人毕业典礼打卡记录","MHA毕业典礼现场记录"]
+    gtp:["今天我终于从FDU心理学顺利毕业啦","读完FDU心理学这程真的好舍不得","今天终于轮到我在FDU顺利毕业了"],
+    cp:["今天我真的从FDU心理咨询毕业了","读完FDU咨询这一整程真的很感慨","今天在FDU把咨询这程认真收尾了"],
+    iop:["做管理的人今天终于从FDU毕业了","在FDU读完管理心理学这一整程啦","今天把FDU这段读书路认真走完了"],
+    mha:["医疗人今天终于从FDU顺利毕业了","在FDU读完MHA这一程真的好感慨","在FDU读完MHA这天真的很感慨"]
   },
   PRO_TAGS:{
     gtp:["#心理学硕士","#心理学","#毕业典礼"],
@@ -456,7 +456,7 @@ const BANK = { open:OPENING, grad:GRAD };
 const FIXED_TAGS = ["#菲尔莱狄更斯大学开学季","#菲尔莱狄更斯大学毕业季","#布克在职研","#布克硕博","#在布克领航职业成长","#美国菲尔莱狄更斯大学","#FDU开学季"];
 
 /**
- * generateCopy —— 纯前端文案生成（mock）。打卡风格(mood)在内部随机。
+ * generateCopy —— 纯前端文案生成（mock）。分享风格(mood)在内部随机。
  * 未来接入真实模型时，整体替换为 callBackend(program, stage)，返回结构一致：
  * { title, body, tags, count }。
  */

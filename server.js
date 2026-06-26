@@ -39,13 +39,13 @@ const STAGES = {
   open: {
     name: "开学 · 新生",
     prompt: "用户身份是 2026 级新生，刚参加 FDU 开学典礼。重点写重新成为学生、见证毕业生拨穗、收到录取通知书、认识同学、开启新旅程。",
-    titleSuffix: "开学典礼打卡",
+    titleSuffix: "开学典礼记录",
     tag: "#开学典礼"
   },
   grad: {
     name: "毕业 · 毕业生",
     prompt: "用户身份是 2026 届毕业生，刚参加 FDU 线下毕业典礼。重点写读完一程、拨穗正冠、学位授予、同学重逢、从学生成为校友。",
-    titleSuffix: "毕业典礼打卡",
+    titleSuffix: "毕业典礼记录",
     tag: "#毕业典礼"
   }
 };
@@ -69,18 +69,55 @@ const FIXED_TAGS = [
 
 const fallbackTitles = {
   open: {
-    gtp: "FDU2026心理学硕士开学打卡",
-    cp: "FDU2026心理咨询硕士开学打卡",
-    iop: "FDU2026管理心理学硕士开学打卡",
-    mha: "FDU2026医疗健康管理硕士开学"
+    gtp: [
+      "我的FDU新生第一天真的有点热闹",
+      "工作几年后我又回FDU认真学心理",
+      "在FDU重新做学生这天真的很奇妙"
+    ],
+    cp: [
+      "今天开始在FDU认真学咨询这件事",
+      "我的FDU新生第一天真的有点心动",
+      "终于要在FDU系统学咨询这件小事"
+    ],
+    iop: [
+      "做管理的人又回FDU继续认真读书",
+      "我的FDU新生第一天真的挺上头啊",
+      "今天在FDU补管理心理学这块拼图"
+    ],
+    mha: [
+      "医疗人又回FDU认真读书这件小事",
+      "我的FDU新生第一天真的有点燃啊",
+      "在FDU补上医疗管理这一课真的值"
+    ]
   },
   grad: {
-    gtp: "FDU2026心理学硕士毕业打卡",
-    cp: "FDU2026心理咨询硕士毕业打卡",
-    iop: "FDU2026管理心理学硕士毕业",
-    mha: "FDU2026医疗健康管理硕士毕业"
+    gtp: [
+      "今天我终于从FDU心理学顺利毕业啦",
+      "读完FDU心理学这程真的好舍不得",
+      "今天终于轮到我在FDU顺利毕业了"
+    ],
+    cp: [
+      "今天我真的从FDU心理咨询毕业了",
+      "读完FDU咨询这一整程真的很感慨",
+      "今天在FDU把咨询这程认真收尾了"
+    ],
+    iop: [
+      "做管理的人今天终于从FDU毕业了",
+      "在FDU读完管理心理学这一整程啦",
+      "今天把FDU这段读书路认真走完了"
+    ],
+    mha: [
+      "医疗人今天终于从FDU顺利毕业了",
+      "在FDU读完MHA这一程真的好感慨",
+      "在FDU读完MHA这天真的很感慨"
+    ]
   }
 };
+
+function chooseFallbackTitle(program, stage) {
+  const titles = fallbackTitles[stage][program];
+  return titles[Math.floor(Math.random() * titles.length)];
+}
 
 function sendJson(res, status, data) {
   const body = JSON.stringify(data);
@@ -129,14 +166,16 @@ function countChineseText(text) {
 }
 
 function cleanTitle(title, program, stage) {
-  const fallback = fallbackTitles[stage][program];
+  const fallback = chooseFallbackTitle(program, stage);
   const cleaned = String(title || "")
     .replace(/[#｜|]/g, "")
     .replace(/上海线下|上海/g, "")
+    .replace(/打卡/g, "")
     .replace(/\s+/g, "")
     .trim();
   const len = [...cleaned].length;
-  return len >= 16 && len <= 20 ? cleaned : fallback;
+  const stiff = /(2026|26级|2026级|2026届|典礼记录|新生开学典礼|毕业典礼记录|硕士毕业典礼|硕士开学典礼)/.test(cleaned);
+  return !stiff && len >= 16 && len <= 20 ? cleaned : fallback;
 }
 
 function cleanStudentCopy(text) {
@@ -145,6 +184,7 @@ function cleanStudentCopy(text) {
     .replace(/上海线下/g, "")
     .replace(/上海的线下/g, "")
     .replace(/上海/g, "")
+    .replace(/打卡/g, "记录")
     .replace(/具体(申请|项目|课程|学校)?信息[^。！？!?\\n]*(以|请以)[^。！？!?\\n]*(学校|官方)[^。！？!?\\n]*[。！？!?]?/g, "")
     .replace(/(大家|同学们)?(还是)?(以|请以)FDU学校官方发布的为准[^。！？!?\\n]*[。！？!?]?/g, "")
     .replace(/(具体)?(申请|项目)?信息(还是)?以学校官方为准[^。！？!?\\n]*[。！？!?]?/g, "")
@@ -220,7 +260,7 @@ function fallbackCopy(program, stage, mood = "ceremony") {
         : "今天算是给自己一个正式的开始。把这条开学记录存下来，也提醒之后的自己，既然已经走到这里，就慢慢、稳稳地把这一程读完。"
   ].join("\n-\n");
   return {
-    title: cleanTitle(fallbackTitles[stage][program], program, stage),
+    title: chooseFallbackTitle(program, stage),
     body: formatBody(body),
     tags: normalizeTags([], program, stage),
     count: countChineseText(body),
@@ -257,19 +297,20 @@ async function generateWithArk(program, stage, mood) {
   const programInfo = PROGRAMS[program];
   const stageInfo = STAGES[stage];
   const prompt = [
-    "请为小红书生成一篇 FDU（菲尔莱狄更斯大学）典礼学员打卡文案。",
+    "请为小红书生成一篇 FDU（菲尔莱狄更斯大学）典礼学员个人记录文案。",
     "",
     `专业方向：${programInfo.name}`,
     `专业表达重点：${programInfo.angle}`,
     `典礼身份：${stageInfo.name}`,
     `身份写作重点：${stageInfo.prompt}`,
-    `打卡风格：${MOODS[mood]}`,
+    `分享风格：${MOODS[mood]}`,
     "",
     "必须遵守：",
     "1. 第一人称学员视角，像本人参加典礼后的真实记录，不写招生广告。",
-    "2. 标题必须 16-20 个字符，不能超过 20 个字符，不要使用竖线符号，不写“上海线下”。",
+    "2. 标题必须 16-20 个字符，不能超过 20 个字符；要像学生自己发的小红书标题，口语、真实、有一点情绪，不要像后台系统拼出来的标题。",
+    "2.1 标题不要写成“年份 + FDU + 专业 + 新生/毕业 + 典礼记录”的硬拼结构，不要出现“2026级”“2026届”“26级”“打卡”。",
     "3. 正文 300-500 字，中文自然口语，真诚、有现场感；每个文段之间必须用单独一行 - 分隔。",
-    "4. 禁止出现“上海线下”“具体申请信息”“具体项目信息”“以学校官方为准”“官方发布为准”等不像学生口吻的表达。",
+    "4. 禁止出现“打卡”“上海线下”“具体申请信息”“具体项目信息”“以学校官方为准”“官方发布为准”等不像学生口吻的表达。",
     "5. 可提及签到入场、院长致辞、拨穗正冠、学位授予、学术成就奖、薪火相传、毕业生合照、茶歇交流、录取通知书授予、班委授予、拍照合影、校友晚宴等现场环节。",
     "6. 不承诺包毕业、保录取、快速拿证、执业、落户、涨薪、转行结果。",
     "7. tags 只返回 10 个话题，每个话题都必须以 # 开头。",
